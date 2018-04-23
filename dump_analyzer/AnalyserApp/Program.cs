@@ -19,6 +19,7 @@ namespace AnalyserApp
                 .RegisterMetric(MetricCollectors.CollectThreadCountMetric)
                 .RegisterMultiMetric(MetricCollectors.CollectHeapGenerationMetrics)
                 .RegisterDetector(IssueDetectors.DetectMemLeaks);
+//                .RegisterDetector(IssueDetectors.DetectDeadLocks);
 
             Report report;
             using (var dt = DataTarget.LoadCrashDump(args[0]))

@@ -45,6 +45,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Issues\DeadLockIssue.cs" />
     <Compile Include="Issues\IIssue.cs" />
     <Compile Include="Issues\Issue.cs" />
     <Compile Include="Issues\IssueDetectors.cs" />
@@ -55,6 +56,7 @@
     <Compile Include="Report.cs" />
     <Compile Include="Reporter.cs" />
     <Compile Include="Stats.cs" />
+    <Compile Include="Utils\Graphs.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
