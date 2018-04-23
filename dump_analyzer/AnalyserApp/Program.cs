@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using DmpAnalyze;
 using DmpAnalyze.Issues;
 using DmpAnalyze.Metrics;
@@ -12,25 +13,19 @@ namespace AnalyserApp
     {
         public static void Main(string[] args)
         {   
-            var issueDetectors = new Func<ClrRuntime, Report, IEnumerable<IIssue>>[]
-            {
-                IssueDetectors.DetectMemLeaks
-            };
-            
-            var metricCollector = new Func<ClrRuntime, Metric>[]
-            {
-                MetricCollectors.CollectWorkingSetMetric,
-                MetricCollectors.CollectThreadCountMetric
-            };
+            var reporter = new Reporter();
+            reporter
+                .RegisterMetric(MetricCollectors.CollectWorkingSetMetric)
+                .RegisterMetric(MetricCollectors.CollectThreadCountMetric)
+                .RegisterMultiMetric(MetricCollectors.CollectHeapGenerationMetrics)
+                .RegisterDetector(IssueDetectors.DetectMemLeaks);
 
             Report report;
             using (var dt = DataTarget.LoadCrashDump(args[0]))
             {
                 var rt = dt.ClrVersions[0].CreateRuntime();
                 
-                report = new Report(rt, issueDetectors, metricCollector);
-
-//                Console.WriteLine("done");
+                report = reporter.Report(rt);
             }
 
             var jsonSerializer = new JsonSerializer();

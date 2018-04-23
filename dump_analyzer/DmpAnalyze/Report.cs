@@ -9,19 +9,13 @@ namespace DmpAnalyze
 {
     public class Report
     {
-        public IReadOnlyList<IIssue> Issues { get; }
-        public IReadOnlyList<Metric> Metrics { get; }
+        public IReadOnlyList<IIssue> Issues { get; internal set; }
+        public IReadOnlyList<Metric> Metrics { get; internal set; }
         public Stats Stats { get; }
 
-        public Report(ClrRuntime runtime, 
-            IEnumerable<Func<ClrRuntime, Report, IEnumerable<IIssue>>> detectors,
-            IEnumerable<Func<ClrRuntime, Metric>> metricColletors)
+        internal Report(ClrRuntime runtime)
         {
             Stats = new Stats(runtime);
-
-            Metrics = metricColletors?.Select(m => m(runtime)).ToList() ?? new List<Metric>();
-
-            Issues = detectors?.SelectMany(d => d(runtime, this)).ToList() ?? new List<IIssue>();
         }
     }
 }

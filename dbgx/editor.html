@@ -1,0 +1,701 @@
+﻿<!-- saved from url=(0014)about:internet -->
+<!DOCTYPE html>
+<html>
+<head>
+<title>Source Window</title>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+    <style type="text/css" id="breakpointStyle">
+
+    </style>
+
+    <style type="text/css" id="currentLineStyle">
+
+    </style>
+
+<style type="text/css">
+
+#editor {
+    position: fixed;
+    left: 0px;
+    top: 0px;
+    height:100%;
+    width:100%;
+    overflow:hidden;
+    border: 0px solid #000;
+}
+
+html,body {
+    margin:0;
+    padding:0;
+    height:100%;
+    width:100%;
+}
+
+/* Script window. */
+
+.errorLineTextContent {
+    background-image: url("editor/error.png");
+    background-repeat: repeat-x;
+    background-position: bottom left;
+}
+ 
+.warningLineTextContent {
+    background-image: url("editor/warning.png");
+    background-repeat: repeat-x;
+    background-position: bottom left;
+}
+
+/* Source Window. */
+
+.breakpointMarginClass {
+    background-image: url("editor/breakpoint.png");
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.breakpointDisabledMarginClass {
+    background-image: url("editor/breakpoint_disabled.png");
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.currentLineMarginClass {
+    background-image: url("editor/current.png");
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+/* We can do "combined classes" on margins, but not on line contents.*/
+
+.currentLineMarginClass.breakpointMarginClass {
+    background-image: url("editor/breakpoint_current.png");
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.currentLineMarginClass.breakpointDisabledMarginClass {
+    background-image: url("editor/breakpoint_current_disabled.png");
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.breakpointDisabledLineContent {
+    background-color: lightgray;
+}
+
+.currentLineContent {
+    background-color: yellow;
+}
+
+.currentLineInlineContent {
+    color: black !important;
+}
+
+.breakpointLineContent {
+    background-color: red;
+}
+
+.breakpointInlineContent {
+    color: black !important;
+}
+
+.breakpointLineContent.currentLineContent {
+    background-color: orange;
+}
+.currentLineContent.breakpointLineContent {
+    background-color: blue;
+}
+
+.monaco-editor {
+    height:100%;
+    width:100%;
+    line-height: inherit;
+}
+
+.selected-text {
+    z-index: 1;
+}
+
+.view-line {
+    z-index: 1;
+}
+
+.scrollbar {
+    z-index: 2;
+}
+
+</style>
+
+
+<link rel="stylesheet" type="text/css" media="screen" href="Monaco/vs/editor/css/vs-theme.css" />
+<!--
+<link rel="stylesheet" type="text/css" media="screen" href="Monaco/vs/editor/css/vs-dark-theme.css" />
+-->
+    <script type="text/javascript">
+var cancel = function() { window.event.returnValue=false; }
+    </script>
+</head>
+
+<body ondragenter="cancel()"
+      ondragover="cancel()"
+      ondragleave="cancel()"
+      ondrop="cancel()" id="body">
+
+    
+    <div id="editor"
+      ondragenter="cancel()"
+      ondragover="cancel()"
+      ondragleave="cancel()"
+      ondrop="cancel()"
+         ></div>
+
+    <script type="text/javascript">
+        window.open = function (open) {
+            window.external.OpenUrl(open);
+        }
+    </script>
+
+    <script type="text/javascript" src="Monaco/vs/loader.js"></script>
+
+    <script type="text/javascript">
+        require.config({
+            baseUrl: "Monaco"
+        });
+        (function () {
+
+            var executeOnSaveRegistration = null;
+            var ignoreContentChange = false;
+            var editor;
+            var scriptWindow = false;
+            var lastLinePosition = 0;
+            var jsDefinitions;
+
+            var getLanguageForExtension = function (ext) {
+                var languages = monaco.languages.getLanguages();
+                for (index = 0; index < languages.length; ++index) {
+                    if (languages[index].extensions.indexOf(ext) != -1) {
+                        return languages[index].id;
+                    }
+                }
+
+                return "plaintext";
+            };
+
+            var getMonacoThemeFromShellThemeName = function (theme) {
+                if (theme == "Light") {
+                    return 'vs';
+                }
+                else if (theme == "Dark") {
+                    return 'vs-dark';
+                }
+                else if (theme == "High Contrast") {
+                    return 'hc-black';
+                }
+            }
+
+            window.createEditor = function (src, extension, theme, isScriptWindow, cursorBlink) {
+                require(["vs/editor/editor.main"], function () {
+                    
+                    //
+                    // Make sure that we register NatVis script extensions as belonging
+                    // to the XML language provider.
+                    //
+                    var languages = monaco.languages.getLanguages();
+                    for (index = 0; index < languages.length; ++index)
+                    {
+                        if (languages[index].id == "xml")
+                        {
+                            languages[index].extensions.push(".natvis");
+                            break;
+                        }
+                    }
+
+                    var KeyMod = require('vs/base/common/keyCodes').KeyMod;
+                    var KeyCode = require('vs/base/common/keyCodes').KeyCode;
+
+                    // Various windows DPI settings will mess around with the default pixel size of
+                    // text. Monaco wants an absolute size in the font size. So we grab the default
+                    // font size of text in the body of this document to use as a basis.
+                    var bodyFontSize = window.getComputedStyle(document.getElementById("body"), null).getPropertyValue("font-size");
+                    // This comes back as something like 12px, so we need to trim off the "px"
+                    bodyFontSize = bodyFontSize.substring(0, bodyFontSize.length - 2);
+                    // The default font is a little bit too large, so take 80% of the default font size
+                    var textFontSize = parseInt(bodyFontSize, 10) * 0.8;
+                    // List of supported mime types are in the docs:
+                    // http://monacotools.azurewebsites.net/
+                    editor = monaco.editor.create(document.getElementById("editor"), {
+                        value: src,
+                        language: getLanguageForExtension(extension),
+                        automaticLayout: true,
+                        readOnly: !isScriptWindow,
+                        glyphMargin: true,
+                        tabCompletion: true,
+                        fontSize: textFontSize,
+                        mouseWheelZoom: true,
+                        cursorBlinking: cursorBlink,
+                        theme: getMonacoThemeFromShellThemeName(theme),
+                        minimap: { enabled: false },
+                        scrollbar:
+                        {
+                            verticalHasArrows: true,
+                            horizontalHasArrows: true,
+                            arrowSize: 30
+                        }
+                    });
+
+                    if (isScriptWindow) {
+                        editor.addAction({
+                            id: 'request-save-script',
+                            label: 'Save',
+                            keybindings: [ KeyCode.KEY_S | KeyMod.CtrlCmd ],
+                            contextMenuGroupId: 'scripting-save',
+                            run: function (ed) {
+                                window.external.SaveScript();
+                            }
+                        });
+
+                        editor.addAction({
+                            id: 'request-saveas-script',
+                            label: 'Save As...',
+                            keybindings: [KeyCode.KEY_S | KeyMod.CtrlCmd | KeyMod.Shift],
+                            contextMenuGroupId: 'scripting-save',
+                            run: function (ed) {
+                                window.external.SaveScriptAs();
+                            }
+                        });
+                    
+                        editor.addAction({
+                            id: 'request-execute-script',
+                            label: 'Execute',
+                            keybindings: [ KeyCode.Enter | KeyMod.CtrlCmd ],
+                            contextMenuGroupId: 'scripting-exec',
+                            run: function (ed) {
+                                window.external.ExecuteScript();
+                            }
+                        });
+
+                        editor.addAction({
+                            id: 'request-unlink-script',
+                            label: 'Unlink',
+                            keybindings: [KeyCode.Enter | KeyMod.CtrlCmd | KeyMod.Shift],
+                            contextMenuGroupId: 'scripting-exec',
+                            run: function (ed) {
+                                window.external.UnlinkScript();
+                            }
+                        });
+
+                        executeOnSaveRegistration = editor.addAction({
+                            id: 'request-execute-on-save',
+                            label: 'Execute Script on Save',
+                            contextMenuGroupId: 'scripting-exec',
+                            run: function (ed) {
+                                window.external.ToggleExecuteOnSave();
+                            }
+                        });
+
+                        editor.getModel().onDidChangeContent(function (e) {
+                            if (!ignoreContentChange) {
+                                window.external.ScriptChanged(editor.getValue(), e.isUndoing);
+                            }
+
+                            ignoreContentChange = false;
+                        });
+
+                    } else {
+
+                        // TODO: these actions should be removed for non-runnable targets
+
+                        editor.addAction({
+                            id: 'request-run-to-cursor',
+                            label: 'Run to Cursor',
+                            keybindings: [KeyCode.F7],
+                            contextMenuGroupId: 'source-controlflow',
+                            run: function (ed) {
+                                window.external.RunToCursor(ed.getPosition().lineNumber)
+                            }
+                        })
+
+                        editor.addAction({
+                            id: 'request-set-instruction-pointer',
+                            label: 'Set Instruction Pointer to Current Line',
+                            keybindings: [KeyCode.KEY_I | KeyMod.CtrlCmd | KeyMod.Shift],
+                            contextMenuGroupId: 'source-controlflow',
+                            run: function (ed) {
+                                window.external.SetInstructionPointer(ed.getPosition().lineNumber)
+                            }
+                        })
+
+
+                        editor.onDidChangeCursorPosition(function (e) {
+                            var newLineNumber = e.position.lineNumber;
+                            if (lastLinePosition != newLineNumber) {
+                                lastLinePosition = newLineNumber;
+                                window.external.SetCursorLineNumber(lastLinePosition);
+                            }
+                        });
+
+                        editor.addAction({
+                            id: 'add-watch',
+                            label: 'Add to watch',
+                            contextMenuGroupId: 'source',
+                            run: function (ed) {
+
+                                // If text is selected, use that as the watch expression
+                                var selection = ed.getSelection();
+                                var watchExpression = ed.getModel().getValueInRange(selection);
+                                if (watchExpression)
+                                {
+                                    window.external.AddToWatch(watchExpression);
+                                    return;
+                                }
+
+                                var position = ed.getPosition();
+                                ed.getModel().tokenIterator(position,
+                                    function (iter) {
+                                        var watchExpression = "";
+                                        // Some monaco update made this stop working because they changed the interface and I don't see a way to do this anymore.
+                                        // Commenting this out uses the simple single-word token mode, and we can always bring this back later if we figure this out...
+                                        /*
+                                        // We iterate backward from the current token so that we can get a complete variable
+                                        // expression. If you click on the "field" part of "myStruct.field" we want the watch
+                                        // expression to be "myStruct.field" and not "field".
+                                        while (iter.hasPrev())
+                                        {
+                                            var tokenInfo = iter.prev();
+                                            var tokenType = tokenInfo.token.type;
+                                            var range = {
+                                                startLineNumber: tokenInfo.lineNumber,
+                                                endLineNumber: tokenInfo.lineNumber,
+                                                startColumn: tokenInfo.startColumn,
+                                                endColumn: tokenInfo.endColumn
+                                            };
+                                            var word = ed.getModel().getValueInRange(range);
+                                            // Uncomment to see what tokens we accept/reject for the watch expression
+                                            //alert("Type: " + tokenType + ", Token: " + word);
+                                            if (word == "." || tokenType == "identifier.cpp" || tokenType == "identifier.cs")
+                                            {
+                                                watchExpression = word + watchExpression;
+                                            }
+                                            else
+                                            {
+                                                break;
+                                            }
+                                        }
+                                        */
+                                        if (watchExpression != "") {
+                                            window.external.AddToWatch(watchExpression);
+                                        } else {
+                                            // We couldn't find any identifiers, so just use the word at the current position
+                                            var word = ed.getModel().getWordAtPosition(position).word;
+                                            // We should always have some sort of word, since we are only enabled for wordAtPosition
+                                            window.external.AddToWatch(word);
+                                        }
+                                    });
+                            },
+                            enablement: {
+                                textFocus: true,
+                                wordAtPosition: true,
+                                tokensAtPosition: ['identifier', '', ''],
+                            }
+                        });
+
+                        editor.addAction({
+                            id: 'request-new-breakpoint',
+                            label: 'Set Breakpoint',
+                            keybindings: [KeyCode.F9],
+                            contextMenuGroupId: 'source',
+                            run: function (ed) {
+                                window.external.ToggleBreakpoint(ed.getPosition().lineNumber)
+                            }
+                        })
+                    }
+
+                    editor.addAction({
+                        id: 'msdn-search',
+                        label: 'Search on MSDN',
+                        keybindings: [KeyCode.F1 | KeyMod.Shift | KeyMod.CtrlCmd],
+                        keybindingContext: null,
+                        contextMenuGroupId: 'tools',
+                        run: function (ed) {
+                            var word = ed.getModel().getWordAtPosition(ed.getPosition()).word;
+                            window.external.OpenUrl("https://social.msdn.microsoft.com/Search/en-US?refinement=117&query=" + encodeURIComponent(word));
+                            return null;
+                        },
+                        enablement: {
+                            textFocus: true,
+                            wordAtPosition: true,
+                            tokensAtPosition: ['identifier', '', ''],
+                        }
+                    });
+
+                    scriptWindow = isScriptWindow;
+
+                    editor.onDidFocusEditor(function (e) {
+                        if (editor.isFocused()) {
+                            window.external.FocusGained();
+                        }
+                    });
+
+                    editor.onMouseDown(function (e) {
+                        if (e.target.type == monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN ||
+                            e.target.type == monaco.editor.MouseTargetType.GUTTER_LINE_DECORATIONS ||
+                            e.target.type == monaco.editor.MouseTargetType.GUTTER_LINE_NUMBERS) {
+                            window.external.ToggleBreakpoint(e.target.position.lineNumber);
+                        }
+                    });
+
+                    window.external.SourceReady();
+                });
+            };
+
+            window.setExecuteOnSave = function (executeOnSave) {
+                if (executeOnSaveRegistration) {
+                    executeOnSaveRegistration.dispose();
+                }
+
+                var label = null;
+                if (executeOnSave) {
+                    label = 'Execute Script on Save   \u2713'
+                }
+                else {
+                    label = 'Execute Script On Save';
+                }
+
+                executeOnSaveRegistration = editor.addAction({
+                    id: 'request-execute-on-save',
+                    label: label,
+                    contextMenuGroupId: 'scripting-exec',
+                    run: function (ed) {
+                        window.external.ToggleExecuteOnSave();
+                    }
+                })
+            };
+
+            window.focusEditor = function () {
+                if (!document.hasFocus()) {
+                    document.focus();
+                    editor.focus();
+                }
+            };
+
+            window.setReadOnly = function (isReadOnly) {
+                editor.updateOptions({ readOnly: isReadOnly });
+            };
+
+            window.setText = function (text, extension) {
+                ignoreContentChange = true;
+                monaco.editor.setModelLanguage(editor.getModel(), getLanguageForExtension(extension));
+                editor.getModel().setValue(text);
+            };
+
+            window.importJavascriptDefinitions = function (contents) {
+                jsDefinitions = monaco.languages.typescript.javascriptDefaults.addExtraLib(contents, '');
+            }
+
+            window.setTheme = function (theme) {
+                monaco.editor.setTheme(getMonacoThemeFromShellThemeName(theme));
+            }
+
+            //
+            // TODO: known issue -- the hover textbox will have a superflous scrollbar
+            // tracked here https://github.com/Microsoft/vscode/issues/14541
+            //
+            var scriptSyntaxDecorationIds = [];
+            window.addSyntaxHighlights = function (entries) {
+
+                editor.changeDecorations(function (changeAccessor) {
+                    if (scriptSyntaxDecorationIds.length != 0) {
+                        for (var i = 0; i < scriptSyntaxDecorationIds.length; ++i) {
+                            changeAccessor.removeDecoration(scriptSyntaxDecorationIds[i]);
+                        }
+                    }
+                });
+
+                scriptSyntaxDecorationIds = [];
+                var highlights = eval(entries);
+                editor.changeDecorations(function (changeAccessor) {
+                    for (var i = 0; i < highlights.length; ++i) {
+                        var id2 = changeAccessor.addDecoration({
+                            startLineNumber: highlights[i].line,
+                            startColumn: highlights[i].startColumn,
+                            endLineNumber: highlights[i].line,
+                            endColumn: highlights[i].endColumn
+                        }, {
+                            className: highlights[i].error ? 'errorLineTextContent' : 'warningLineTextContent',
+                            hoverMessage: highlights[i].message
+                        });
+                        scriptSyntaxDecorationIds.push(id2);
+                    }
+                });
+            };
+
+            function isWhitespace(char) {
+                var whitespace = " \t\n\r\f";
+                return (whitespace.indexOf(char) != -1);
+            }
+
+            function revealLine (lineNumber, revealOnlyIfOutside) {
+                var viewModel = editor.getModel();
+                var lineContent = viewModel.getLineContent(lineNumber);
+                var indent = 0;
+
+                for (indent = 0; indent < lineContent.length; indent++) {
+                    if (!isWhitespace(lineContent[indent])) {
+                        break;
+                    }
+                }
+
+                var range = {
+                    startLineNumber: lineNumber,
+                    startColumn: indent,
+                    endLineNumber: lineNumber,
+                    endColumn: indent
+                }
+
+                if (revealOnlyIfOutside)
+                {
+                    editor.revealRangeInCenterIfOutsideViewport(range);
+                }
+                else
+                {
+                    editor.revealRangeInCenter(range);
+                }
+            }
+
+            var currentLineID = null;
+            var currentLineNumber;
+            window.setCurrentLine = function (lineNumber) {
+                try {
+                    currentLineNumber = lineNumber;
+                    currentLineID = editor.changeDecorations(function (changeAccessor) {
+                        if (currentLineID != null) {
+                            changeAccessor.removeDecoration(currentLineID);
+                        }
+
+                        return changeAccessor.addDecoration({
+                            startLineNumber: lineNumber,
+                            startColumn: 1,
+                            endLineNumber: lineNumber,
+                            endColumn: 1
+                        }, {
+                            isWholeLine: true,
+                            className: 'currentLineContent',
+                            inlineClassName: 'currentLineInlineContent',
+                            glyphMarginClassName: 'currentLineMarginClass',
+                        });
+                    });
+                    var currentLineStyle = "[linenumber='" + lineNumber + "'] > span > span { color: black !important; }\n";
+                    document.getElementById("currentLineStyle").innerHTML = currentLineStyle;
+                    updateBreakpoints();
+
+                    revealLine(lineNumber, true);
+                }
+                catch (ex) {
+                    window.external.ReportError(ex.stack);
+                }
+            }
+
+            window.removeCurrentLine = function () {
+                if (currentLineID != null) {
+                    editor.changeDecorations(function (changeAccessor) {
+                        return changeAccessor.removeDecoration(currentLineID);
+                    });
+                    currentLineID = null;
+                    currentLineNumber = -1;
+                }
+                updateBreakpoints();
+            }
+
+            window.focusSourceLine = function (lineNumber, select) {
+                try {
+                    revealLine(lineNumber, false);
+                    var maxColumn = editor.getModel().getLineMaxColumn(lineNumber);
+
+                    if (select)
+                    {
+                        editor.setSelection({
+                            startLineNumber: lineNumber,
+                            startColumn: 1,
+                            endLineNumber: lineNumber,
+                            endColumn: maxColumn
+                        });
+                    }
+                }
+                catch (ex) {
+                    window.external.ReportError(ex.stack);
+                }
+            }
+
+            var breakpointIds = null;
+            var breakpointTextStyle = null;
+            var breakpoints = [];
+
+            window.setBreakpoints = function (breakpointsJsonString) {
+                breakpoints = JSON.parse(breakpointsJsonString);
+                updateBreakpoints();
+            }
+
+            window.updateBreakpoints = function () {
+                function ClearBreakpoints() {
+                    if (breakpointIds != null) {
+                        var index;
+                        for (index = 0; index < breakpointIds.length; index++) {
+                            editor.changeDecorations(function (changeAccessor) {
+                                return changeAccessor.removeDecoration(breakpointIds[index]);
+                            });
+                        }
+                        breakpointIds = null;
+                    }
+                }
+                if (breakpoints.length == 0) {
+                    ClearBreakpoints();
+                    document.getElementById("breakpointStyle").innerHTML = "";
+                }
+                else {
+                    // TODO: We can probably be smarter than clearing all the breakpoints every time, but this seems reasonably fast.
+                    ClearBreakpoints();
+                    breakpointIds = [];
+                    var index;
+                    var breakpointStyle = "";
+                    for (index = 0; index < breakpoints.length; index++) {
+                        if (breakpoints[index].lineNumber != currentLineNumber) {
+                            breakpointIds.push(editor.changeDecorations(function (changeAccessor) {
+                                return changeAccessor.addDecoration({
+                                    startLineNumber: breakpoints[index].lineNumber,
+                                    startColumn: 1,
+                                    endLineNumber: breakpoints[index].lineNumber,
+                                    endColumn: 1
+                                }, {
+                                    isWholeLine: true,
+                                    className: breakpoints[index].isEnabled ? 'breakpointLineContent' : 'breakpointDisabledLineContent',
+                                    inlineClassName : 'breakpointInlineContent',
+                                    glyphMarginClassName: breakpoints[index].isEnabled ? 'breakpointMarginClass' : 'breakpointDisabledMarginClass',
+                                });
+                            }));
+                            breakpointStyle += "[linenumber='" + breakpoints[index].lineNumber + "'] > span > span { color: white !important; }\n";
+                        }
+                        else {
+                            breakpointIds.push(editor.changeDecorations(function (changeAccessor) {
+                                return changeAccessor.addDecoration({
+                                    startLineNumber: breakpoints[index].lineNumber,
+                                    startColumn: 1,
+                                    endLineNumber: breakpoints[index].lineNumber,
+                                    endColumn: 1
+                                }, {
+                                    isWholeLine: true,
+                                    inlineClassName: 'breakpointInlineContent',
+                                    glyphMarginClassName: breakpoints[index].isEnabled ? 'breakpointMarginClass' : 'breakpointDisabledMarginClass',
+                                });
+                            }));
+                        }
+                    }
+                    document.getElementById("breakpointStyle").innerHTML = breakpointStyle;
+                }
+            }
+            window.external.DocumentReady();
+        })();
+    </script>
+
+</body>
+</html> 

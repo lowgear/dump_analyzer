@@ -1,0 +1,24 @@
+								|impl	|clrmd can	|hints
+-statistics						|		|			|
+	-top 10 consuming types		|	+	|	+		|
+								|		|			|
+-problems						|		|			|
+	-memory						|		|			|
+		-managed memory leak	|	+-	|	+		|
+		-high consumption		|		|			|
+	-threads					|		|			|
+		-deadlocks				|		|			|
+		-lock convoy			|		|			|
+		-inf loop				|		|			|
+	-crash						|		|			|
+		-.NET exception			|		|			|
+		-stack overflow			|		|			|
+		-access violation		|		|			|
+-metrics						|		|			|
+	-commit size				|		|	-		|!address
+	-working set				|		|	-		|!address
+	-private bytes				|		|	-		|!address
+	-heap size					|		|			|
+		-gen 0, 1, 2, LOH		|	+	|			|
+	-threads count				|	+	|	+		|
+	
