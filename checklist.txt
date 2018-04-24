@@ -8,7 +8,7 @@
 		-high consumption		|		|			|			|
 	-threads					|		|			|			|
 		-deadlocks				|	+	|	+		|			|!dlk
-		-lock convoy			|		|			|			|
+		-lock convoy			|	+	|	+		|			|
 		-inf loop				|		|			|			|
 	-crash						|		|			|			|
 		-.NET exception			|		|			|			|
