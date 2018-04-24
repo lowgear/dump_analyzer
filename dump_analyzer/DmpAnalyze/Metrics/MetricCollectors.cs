@@ -21,11 +21,19 @@ namespace DmpAnalyze.Metrics
 
         public static IEnumerable<Metric> CollectHeapGenerationMetrics(this ClrRuntime runtime)
         {
-            return runtime.Heap
+            foreach (var gen in runtime.Heap
                 .EnumerateObjectAddresses()
-                .Select(runtime.Heap.GetGeneration)
+                .Select(a =>
+                {
+                    var g = runtime.Heap.GetGeneration(a);
+                    if (g == 2 && runtime.Heap.GetSegmentByAddress(a).IsLarge)
+                        g = 3;
+                    return g;
+                })
                 .GroupBy(g => g)
-                .Select(g => new Metric($"Heap generation {g.Key}", g.Count()));
+                .Select(g => new Metric($"Heap generation {g.Key}", g.Count())))
+                yield return gen;
+
         }
     }
 }
