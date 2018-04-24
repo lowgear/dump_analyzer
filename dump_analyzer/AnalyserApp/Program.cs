@@ -1,11 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using DmpAnalyze;
 using DmpAnalyze.Issues;
 using DmpAnalyze.Metrics;
 using Microsoft.Diagnostics.Runtime;
 using Newtonsoft.Json;
+using FluentJsonNet;
 
 namespace AnalyserApp
 {
@@ -18,8 +17,9 @@ namespace AnalyserApp
                 .RegisterMetric(MetricCollectors.CollectWorkingSetMetric)
                 .RegisterMetric(MetricCollectors.CollectThreadCountMetric)
                 .RegisterMultiMetric(MetricCollectors.CollectHeapGenerationMetrics)
-                .RegisterDetector(IssueDetectors.DetectMemLeaks);
-//                .RegisterDetector(IssueDetectors.DetectDeadLocks);
+                .RegisterDetector(IssueDetectors.DetectMemLeaks)
+                .RegisterDetector(IssueDetectors.DetectDeadLocks)
+                .RegisterDetector(IssueDetectors.DetectLockConvoys);
 
             Report report;
             using (var dt = DataTarget.LoadCrashDump(args[0]))
@@ -29,9 +29,12 @@ namespace AnalyserApp
                 report = reporter.Report(rt);
             }
 
-            var jsonSerializer = new JsonSerializer();
-            jsonSerializer.Formatting = Formatting.Indented;
+            var jsonSerializer = new JsonSerializer
+            {
+                Formatting = Formatting.Indented
+            };
             jsonSerializer.Serialize(Console.Out, report);
+            
         }
     }
 }

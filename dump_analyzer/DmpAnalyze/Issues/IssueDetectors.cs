@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using DmpAnalyze.Metrics;
 using DmpAnalyze.Utils;
@@ -9,6 +8,9 @@ namespace DmpAnalyze.Issues
 {
     public static class IssueDetectors
     {
+        public const int ConvoyMinLength = 4;
+        
+        
         public static IEnumerable<Issue> DetectMemLeaks(this ClrRuntime runtime, Report report)
         {
             var workingSet = report.Metrics.FirstOrDefault(m => m is WorkingSetMetric)?.Value ??
@@ -28,23 +30,30 @@ namespace DmpAnalyze.Issues
         }
 
         public static IEnumerable<DeadLockIssue> DetectDeadLocks(this ClrRuntime runtime, Report report)
-        {
-            // todo Not finished
-            throw new NotImplementedException();
-            
+        {            
             var blockedThreads = runtime.Heap
                 .EnumerateBlockingObjects()
-                .Where(o => o.Taken && o.Waiters.Count > 0)
+                .Where(o => o.Owner != null && o.Waiters.Count > 0)
                 .Select(o => o.Owner);
 
 
             var lockCycles = Graphs
                 .FindCycles(
                     blockedThreads,
-                    thread => thread.BlockingObjects.Select(o => o.Owner),
+                    thread => thread.BlockingObjects,
+                    obj => obj.Owner,
                     new ClrThreadEqualityComparer());
 
             return lockCycles.Select(c => new DeadLockIssue(c));
+        }
+
+        public static IEnumerable<LockConvoyIssue> DetectLockConvoys(this ClrRuntime runtime, Report report)
+        {
+            var convoyObjects = runtime.Heap.EnumerateBlockingObjects()
+                .Where(o => o.Waiters.Count >= ConvoyMinLength);
+
+            return convoyObjects
+                .Select(o => new LockConvoyIssue(o));
         }
     }
 }

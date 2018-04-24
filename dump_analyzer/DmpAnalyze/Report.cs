@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using DmpAnalyze.Issues;
 using DmpAnalyze.Metrics;
 using Microsoft.Diagnostics.Runtime;
