@@ -11,10 +11,10 @@ namespace DmpAnalyze.Issues
         public const int ConvoyMinLength = 4;
         
         
-        public static IEnumerable<Issue> DetectMemLeaks(this ClrRuntime runtime, Report report)
+        public static IEnumerable<Issue> DetectMemLeaks(ClrRuntime runtime, Report report)
         {
             var workingSet = report.Metrics.FirstOrDefault(m => m is WorkingSetMetric)?.Value ??
-                             runtime.CollectWorkingSetMetric().Value;
+                             MetricCollectors.CollectWorkingSetMetric(runtime).Value;
             var suspiciousTypes = report.Stats.Top10ConsumingTypes.Where(kv => kv.Value > (ulong) (workingSet / 3));
 
             return suspiciousTypes
@@ -29,7 +29,7 @@ namespace DmpAnalyze.Issues
             public int GetHashCode(ClrThread obj) => obj.GetHashCode();
         }
 
-        public static IEnumerable<DeadLockIssue> DetectDeadLocks(this ClrRuntime runtime, Report report)
+        public static IEnumerable<DeadLockIssue> DetectDeadLocks(ClrRuntime runtime, Report report)
         {            
             var blockedThreads = runtime.Heap
                 .EnumerateBlockingObjects()
@@ -47,7 +47,7 @@ namespace DmpAnalyze.Issues
             return lockCycles.Select(c => new DeadLockIssue(c));
         }
 
-        public static IEnumerable<LockConvoyIssue> DetectLockConvoys(this ClrRuntime runtime, Report report)
+        public static IEnumerable<LockConvoyIssue> DetectLockConvoys(ClrRuntime runtime, Report report)
         {
             var convoyObjects = runtime.Heap.EnumerateBlockingObjects()
                 .Where(o => o.Waiters.Count >= ConvoyMinLength);

@@ -9,7 +9,7 @@ namespace DmpAnalyze.Metrics
         public static Metric CollectThreadCountMetric(ClrRuntime runtime) =>
             new Metric("Threads count", runtime.Threads.Count);
 
-        public static WorkingSetMetric CollectWorkingSetMetric(this ClrRuntime runtime)
+        public static WorkingSetMetric CollectWorkingSetMetric(ClrRuntime runtime)
         {
             // TODO is this a correct way?
             var value = runtime.EnumerateMemoryRegions()
@@ -19,9 +19,9 @@ namespace DmpAnalyze.Metrics
             return new WorkingSetMetric("Working set size", value);
         }
 
-        public static IEnumerable<Metric> CollectHeapGenerationMetrics(this ClrRuntime runtime)
+        public static IEnumerable<Metric> CollectHeapGenerationMetrics(ClrRuntime runtime)
         {
-            foreach (var gen in runtime.Heap
+            return runtime.Heap
                 .EnumerateObjectAddresses()
                 .Select(a =>
                 {
@@ -31,9 +31,8 @@ namespace DmpAnalyze.Metrics
                     return g;
                 })
                 .GroupBy(g => g)
-                .Select(g => new Metric($"Heap generation {g.Key}", g.Count())))
-                yield return gen;
-
+                .OrderBy(g => g.Key)
+                .Select(g => new Metric($"Heap generation {g.Key}", g.Count()));
         }
     }
 }
