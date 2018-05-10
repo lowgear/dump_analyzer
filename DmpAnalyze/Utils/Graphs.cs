@@ -47,10 +47,11 @@ namespace DmpAnalyze.Utils
                 .TakeWhile(t =>
                 {
                     var pred = endMet;
-                    endMet = !comparer.Equals(t.Item1, cycleEnd);
-                    return pred;
+                    endMet = comparer.Equals(t.Item1, cycleEnd);
+                    return !pred;
                 })
-                .Select(t => Tuple.Create(t.Item1, t.Item2.Current));
+                .Select(t => Tuple.Create(t.Item1, t.Item2.Current))
+                .ToArray();
         }
 
         private static void AddNodeToStack<TN, TE>(TN node, Func<TN, IEnumerable<TE>> getNeigbours, ICollection<TN> notUsedNodes, Stack<Tuple<TN, IEnumerator<TE>>> stack, ISet<TN> stackSet)
