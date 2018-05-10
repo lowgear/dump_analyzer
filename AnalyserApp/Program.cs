@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Linq;
-using Castle.MicroKernel;
 using DmpAnalyze;
 using DmpAnalyze.Issues;
 using DmpAnalyze.Metrics;
 using Fclp;
 using Microsoft.Diagnostics.Runtime;
 using Newtonsoft.Json;
-using FluentJsonNet;
 
 namespace AnalyserApp
 {
@@ -66,12 +64,14 @@ namespace AnalyserApp
         {
             var reporter = new Reporter();
             reporter
-                .RegisterMetric(MetricCollectors.CollectWorkingSetMetric)
-                .RegisterMetric(MetricCollectors.CollectThreadCountMetric)
+                .RegisterMetrics(
+                    MetricCollectors.CollectWorkingSetMetric,
+                    MetricCollectors.CollectThreadCountMetric)
                 .RegisterMultiMetric(MetricCollectors.CollectHeapGenerationMetrics)
-                .RegisterDetector(IssueDetectors.DetectMemLeaks)
-                .RegisterDetector(IssueDetectors.DetectDeadLocks)
-                .RegisterDetector(IssueDetectors.DetectLockConvoys);
+                .RegisterDetectors(
+                    IssueDetectors.DetectMemLeaks, 
+                    IssueDetectors.DetectDeadLocks, 
+                    IssueDetectors.DetectLockConvoys);
 
             Report[] reports;
             using (var dt = DataTarget.LoadCrashDump(args.File))
