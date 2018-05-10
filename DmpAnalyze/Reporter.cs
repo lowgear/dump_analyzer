@@ -53,5 +53,19 @@ namespace DmpAnalyze
 
             return this;
         }
+
+        public Reporter RegisterMetrics(params Func<ClrRuntime, Metric>[] metricCollectors)
+        {
+            foreach (var metricCollector in metricCollectors)
+                RegisterMetric(metricCollector);
+            return this;
+        }
+
+        public Reporter RegisterDetectors(params Func<ClrRuntime, Report, IEnumerable<IIssue>>[] detectors)
+        {
+            foreach (var detector in detectors)
+                RegisterDetector(detector);
+            return this;
+        }
     }
 }

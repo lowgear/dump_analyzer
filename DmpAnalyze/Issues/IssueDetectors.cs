@@ -11,7 +11,7 @@ namespace DmpAnalyze.Issues
         public const int ConvoyMinLength = 4;
         
         
-        public static IEnumerable<Issue> DetectMemLeaks(ClrRuntime runtime, Report report)
+        public static IEnumerable<IIssue> DetectMemLeaks(ClrRuntime runtime, Report report)
         {
             var workingSet = report.Metrics.FirstOrDefault(m => m is WorkingSetMetric)?.Value ??
                              MetricCollectors.CollectWorkingSetMetric(runtime).Value;
@@ -29,7 +29,7 @@ namespace DmpAnalyze.Issues
             public int GetHashCode(ClrThread obj) => obj.GetHashCode();
         }
 
-        public static IEnumerable<DeadLockIssue> DetectDeadLocks(ClrRuntime runtime, Report report)
+        public static IEnumerable<IIssue> DetectDeadLocks(ClrRuntime runtime, Report report)
         {            
             var blockedThreads = runtime.Heap
                 .EnumerateBlockingObjects()

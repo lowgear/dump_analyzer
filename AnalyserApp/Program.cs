@@ -23,7 +23,7 @@ namespace AnalyserApp
             dumpCmd.Setup(a => a.File)
                 .As('f', "file")
                 .Required();
-            
+
             var processCmd = fclp.SetupCommand<ProcessArguments>("proc")
                 .OnSuccess(HandleProc);
 
@@ -38,12 +38,14 @@ namespace AnalyserApp
         {
             var reporter = new Reporter();
             reporter
-                .RegisterMetric(MetricCollectors.CollectWorkingSetMetric)
-                .RegisterMetric(MetricCollectors.CollectThreadCountMetric)
+                .RegisterMetrics(
+                    MetricCollectors.CollectWorkingSetMetric,
+                    MetricCollectors.CollectThreadCountMetric)
                 .RegisterMultiMetric(MetricCollectors.CollectHeapGenerationMetrics)
-                .RegisterDetector(IssueDetectors.DetectMemLeaks)
-                .RegisterDetector(IssueDetectors.DetectDeadLocks)
-                .RegisterDetector(IssueDetectors.DetectLockConvoys);
+                .RegisterDetectors(
+                    IssueDetectors.DetectMemLeaks, 
+                    IssueDetectors.DetectDeadLocks, 
+                    IssueDetectors.DetectLockConvoys);
 
             Report[] reports;
             using (var dt = DataTarget.AttachToProcess(args.ProcessId, 10000)) // todo timeout for what? if out?

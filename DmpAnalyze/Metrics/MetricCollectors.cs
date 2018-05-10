@@ -9,7 +9,7 @@ namespace DmpAnalyze.Metrics
         public static Metric CollectThreadCountMetric(ClrRuntime runtime) =>
             new Metric("Threads count", runtime.Threads.Count);
 
-        public static WorkingSetMetric CollectWorkingSetMetric(ClrRuntime runtime)
+        public static Metric CollectWorkingSetMetric(ClrRuntime runtime)
         {
             // TODO is this a correct way?
             var value = runtime.EnumerateMemoryRegions()
