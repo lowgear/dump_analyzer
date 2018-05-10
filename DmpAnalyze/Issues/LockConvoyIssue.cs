@@ -7,7 +7,7 @@ namespace DmpAnalyze.Issues
     {
         public LockConvoyIssue(BlockingObject blockingObject)
         {
-            Title = $"Lock convoy of {blockingObject.Waiters} waiting and one locking threads";
+            Title = $"Lock convoy of {blockingObject.Waiters.Count} waiting and one locking threads";
 
             var objRef = blockingObject.Object;
 
