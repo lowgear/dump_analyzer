@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Linq;
-using System.Runtime.InteropServices;
 using CommandLine;
 using DmpAnalyze;
 using DmpAnalyze.Issues;
 using DmpAnalyze.Metrics;
-using Fclp;
-using Fclp.Internals;
 using Microsoft.Diagnostics.Runtime;
 using Newtonsoft.Json;
 
@@ -56,6 +53,17 @@ namespace AnalyserApp
             {
                 if (value)
                     Reporter.RegisterDetector(IssueDetectors.DetectDeadLocks);
+            }
+        }
+        
+        [Option("ex", Default = false, HelpText = "Check for unhandled exceptions")]
+        public bool Exceptions
+        {
+            get => false;
+            set
+            {
+                if (value)
+                    Reporter.RegisterDetector(IssueDetectors.DetectUnhandledExceptions);
             }
         }
 

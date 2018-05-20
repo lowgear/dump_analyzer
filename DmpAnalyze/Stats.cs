@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Diagnostics.Runtime;
 
@@ -20,18 +19,23 @@ namespace DmpAnalyze
 
         private void InitStackTraceStats(ClrRuntime runtime)
         {
-            var stackTraceStats = new Dictionary<string[], int>(new StackTraceComparer());
+            var stackTraceStats = new Dictionary<string[], List<int>>(new StackTraceComparer());
             foreach (var thread in runtime.Threads)
             {
                 var stackTrace = thread.StackTrace.Select(frame => frame?.DisplayString ?? "No representation")
                     .ToArray();
                 if (!stackTraceStats.ContainsKey(stackTrace))
-                    stackTraceStats[stackTrace] = 0;
-                stackTraceStats[stackTrace]++;
+                    stackTraceStats[stackTrace] = new List<int>();
+                stackTraceStats[stackTrace].Add(thread.ManagedThreadId);
             }
 
             StackTraceStats = stackTraceStats
-                .Select(x => new StackTraceStat {StackTrace = x.Key, ThreadsCount = x.Value})
+                .Select(x => new StackTraceStat
+                {
+                    StackTrace = x.Key,
+                    ThreadsCount = x.Value.Count,
+                    ThreadIds = x.Value
+                })
                 .ToArray();
         }
 
@@ -54,10 +58,8 @@ namespace DmpAnalyze
 
     public class StackTraceComparer : IEqualityComparer<string[]>
     {
-        public bool Equals(string[] x, string[] y)
-        {
-            return x.Zip(y, (s, s1) => s1 == s).All(_ => _);
-        }
+        public bool Equals(string[] x, string[] y) => 
+            x.Zip(y, (s, s1) => s1 == s).All(_ => _);
 
         public int GetHashCode(string[] obj)
         {
@@ -71,6 +73,7 @@ namespace DmpAnalyze
     {
         public string[] StackTrace { get; internal set; }
         public int ThreadsCount { get; internal set; }
+        public List<int> ThreadIds { get; set; }
 
 
         public override int GetHashCode()

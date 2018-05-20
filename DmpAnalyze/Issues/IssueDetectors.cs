@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using DmpAnalyze.Metrics;
 using DmpAnalyze.Utils;
 using Microsoft.Diagnostics.Runtime;
 
@@ -54,6 +53,13 @@ namespace DmpAnalyze.Issues
 
             return convoyObjects
                 .Select(o => new LockConvoyIssue(o));
+        }
+
+        public static IEnumerable<IIssue> DetectUnhandledExceptions(ClrRuntime runtime, Report report)
+        {
+            return runtime.Threads
+                .Where(t => t.CurrentException != null)
+                .Select(t => new UnhandledExceptionIssue(t));
         }
     }
 }

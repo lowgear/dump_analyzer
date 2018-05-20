@@ -54,6 +54,7 @@
     <Compile Include="Issues\Issue.cs" />
     <Compile Include="Issues\IssueDetectors.cs" />
     <Compile Include="Issues\LockConvoyIssue.cs" />
+    <Compile Include="Issues\UnhandledExceptionIssue.cs" />
     <Compile Include="Metrics\MetricCollectors.cs" />
     <Compile Include="Metrics\Metric.cs" />
     <Compile Include="Metrics\WorkingSetMetric.cs" />
@@ -62,6 +63,7 @@
     <Compile Include="Reporter.cs" />
     <Compile Include="Stats.cs" />
     <Compile Include="Utils\Graphs.cs" />
+    <Compile Include="Utils\Miscellaneous.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
