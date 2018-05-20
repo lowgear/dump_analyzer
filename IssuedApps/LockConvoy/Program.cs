@@ -1,4 +1,6 @@
-﻿using System.Linq;
+﻿using System;
+using System.Globalization;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,10 +10,11 @@ namespace LockConvoy
     {
         public static void Main(string[] args)
         {
+            var spinCount = int.Parse(Console.ReadLine());
             var lock1 = new object();
             object a = null;
             Task.WaitAll(
-                Enumerable.Repeat(0, 6).Select(o =>
+                Enumerable.Repeat(0, 4).Select(o =>
                     Task.Run(() =>
                     {
                         while (true)
@@ -19,6 +22,7 @@ namespace LockConvoy
                             lock (lock1)
                             {
                                 Thread.Sleep(100);
+                                Thread.SpinWait(spinCount);
                             }
                         }
                     })).ToArray());

@@ -24,12 +24,21 @@ namespace DmpAnalyze.Issues
                         var blockingObjType = thread.Runtime.Heap.GetObjectType(blockingObjRef);
 
                         return
-                            $"Thread with id [{thread.OSThreadId}] locked object is blocked by object with ref [{blockingObjRef}] of type {blockingObjType}.";
+                            $"Thread with id [{thread.ManagedThreadId}] locked object is blocked by object with ref [{blockingObjRef}] of type {blockingObjType}.";
                     }));
+
+            StackTraces = Cycle
+                .Select(t =>
+                    t.Item1.StackTrace
+                        .Select(frame => frame?.DisplayString ?? "No representation")
+                        .ToArray())
+                .ToArray();
         }
 
         public string Title => $"Deadlock of {Cycle.Count} threads";
 
         public string Message { get; }
+
+        public string[][] StackTraces { get; }
     }
 }

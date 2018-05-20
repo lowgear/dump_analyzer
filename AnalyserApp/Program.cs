@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Linq;
+using System.Runtime.InteropServices;
+using CommandLine;
 using DmpAnalyze;
 using DmpAnalyze.Issues;
 using DmpAnalyze.Metrics;
 using Fclp;
+using Fclp.Internals;
 using Microsoft.Diagnostics.Runtime;
 using Newtonsoft.Json;
 
@@ -11,45 +14,22 @@ namespace AnalyserApp
 {
     internal class Program
     {
-        public static void Main(string[] args)
+        public static int Main(string[] args)
         {
-            var fclp = new FluentCommandLineParser();
-
-            var dumpCmd = fclp.SetupCommand<DumpArguments>("dump")
-                .OnSuccess(HandleDump);
-
-            dumpCmd.Setup(a => a.File)
-                .As('f', "file")
-                .Required();
-
-            var processCmd = fclp.SetupCommand<ProcessArguments>("proc")
-                .OnSuccess(HandleProc);
-
-            processCmd.Setup(a => a.ProcessId)
-                .As('i', "id")
-                .Required();
-
-            fclp.Parse(args);
+            return Parser.Default.ParseArguments<ProcessArguments, DumpArguments>(args)
+                .MapResult(
+                    (ProcessArguments a) => Run(a),
+                    (DumpArguments a) => Run(a),
+                    errs => 1);
         }
 
-        private static void HandleProc(ProcessArguments args)
+        private static int Run(Arguments args)
         {
-            var reporter = new Reporter();
-            reporter
-                .RegisterMetrics(
-                    MetricCollectors.CollectWorkingSetMetric,
-                    MetricCollectors.CollectThreadCountMetric)
-                .RegisterMultiMetric(MetricCollectors.CollectHeapGenerationMetrics)
-                .RegisterDetectors(
-                    IssueDetectors.DetectMemLeaks, 
-                    IssueDetectors.DetectDeadLocks, 
-                    IssueDetectors.DetectLockConvoys);
-
             Report[] reports;
-            using (var dt = DataTarget.AttachToProcess(args.ProcessId, 10000)) // todo timeout for what? if out?
+            using (var dt = args.GetDataTarget())
             {
                 reports = dt.ClrVersions
-                    .Select(cv => reporter.Report(cv.CreateRuntime()))
+                    .Select(cv => args.Reporter.Report(cv.CreateRuntime()))
                     .ToArray();
             }
 
@@ -58,44 +38,69 @@ namespace AnalyserApp
                 Formatting = Formatting.Indented
             };
             jsonSerializer.Serialize(Console.Out, reports);
-        }
 
-        private static void HandleDump(DumpArguments args)
+            return 0;
+        }
+    }
+
+    internal class Arguments
+    {
+        public Reporter Reporter { get; } = new Reporter();
+        public Func<DataTarget> GetDataTarget { get; protected set; }
+
+        [Option("dlk", Default = false, HelpText = "Check for deadlocks")]
+        public bool Deadlocks
         {
-            var reporter = new Reporter();
-            reporter
-                .RegisterMetrics(
-                    MetricCollectors.CollectWorkingSetMetric,
-                    MetricCollectors.CollectThreadCountMetric)
-                .RegisterMultiMetric(MetricCollectors.CollectHeapGenerationMetrics)
-                .RegisterDetectors(
-                    IssueDetectors.DetectMemLeaks, 
-                    IssueDetectors.DetectDeadLocks, 
-                    IssueDetectors.DetectLockConvoys);
-
-            Report[] reports;
-            using (var dt = DataTarget.LoadCrashDump(args.File))
+            get => false;
+            set
             {
-                reports = dt.ClrVersions
-                    .Select(cv => reporter.Report(cv.CreateRuntime()))
-                    .ToArray();
+                if (value)
+                    Reporter.RegisterDetector(IssueDetectors.DetectDeadLocks);
             }
+        }
 
-            var jsonSerializer = new JsonSerializer
+        [Option("tc", Default = false, HelpText = "Count threads")]
+        public bool ThreadCount
+        {
+            get => false;
+            set
             {
-                Formatting = Formatting.Indented
-            };
-            jsonSerializer.Serialize(Console.Out, reports);
+                if (value)
+                    Reporter.RegisterMetrics(MetricCollectors.CollectThreadCountMetric);
+            }
+        }
+        
+        [Option("hg", Default = false, HelpText = "Generations counts and sizes")]
+        public bool HeapGenerations
+        {
+            get => false;
+            set
+            {
+                if (value)
+                    Reporter.RegisterMultiMetric(MetricCollectors.CollectHeapGenerationMetrics);
+            }
         }
     }
 
-    internal class ProcessArguments
+    [Verb("proc", HelpText = "Analyse live process")]
+    internal class ProcessArguments : Arguments
     {
-        public int ProcessId { get; set; }
+        [Value(0, HelpText = "Process id", Required = true)]
+        public int ProcessId
+        {
+            get => 0;
+            set => GetDataTarget = () => DataTarget.AttachToProcess(value, 10000, AttachFlag.Passive);
+        }
     }
 
-    internal class DumpArguments
+    [Verb("dump", HelpText = "Analyse dump file")]
+    internal class DumpArguments : Arguments
     {
-        public string File { get; set; }
+        [Value(0, HelpText = "Dump file path", Required = true)]
+        public string DumpFile
+        {
+            get => null;
+            set => GetDataTarget = () => DataTarget.LoadCrashDump(value);
+        }
     }
 }

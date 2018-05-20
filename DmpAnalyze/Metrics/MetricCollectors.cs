@@ -9,18 +9,20 @@ namespace DmpAnalyze.Metrics
         public static Metric CollectThreadCountMetric(ClrRuntime runtime) =>
             new Metric("Threads count", runtime.Threads.Count);
 
-        public static Metric CollectWorkingSetMetric(ClrRuntime runtime)
-        {
-            // TODO is this a correct way?
-            var value = runtime.EnumerateMemoryRegions()
-                .Where(r => r.Type != ClrMemoryRegionType.ReservedGCSegment)
-                .Aggregate(0L, (a, r) => a + (long) r.Size);
-
-            return new WorkingSetMetric("Working set size", value);
-        }
 
         public static IEnumerable<Metric> CollectHeapGenerationMetrics(ClrRuntime runtime)
         {
+//            var stat = new int[4];
+//            foreach (var address in runtime.Heap.EnumerateObjectAddresses())
+//            {
+//                var segment = runtime.Heap.GetSegmentByAddress(address);
+//                var gen = segment.IsLarge ? 3 : segment.GetGeneration(address);
+//                stat[gen]++;
+//            }
+//
+//            for (var i = 0; i < stat.Length; i++)
+//                yield return new Metric($"Heap generation {i}", stat[i]);
+//            
             return runtime.Heap
                 .EnumerateObjectAddresses()
                 .Select(a =>
