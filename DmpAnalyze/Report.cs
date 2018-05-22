@@ -9,11 +9,6 @@ namespace DmpAnalyze
     {
         public IReadOnlyList<IIssue> Issues { get; internal set; }
         public IReadOnlyList<Metric> Metrics { get; internal set; }
-        public Stats Stats { get; }
-
-        internal Report(ClrRuntime runtime)
-        {
-            Stats = new Stats(runtime);
-        }
+        public IReadOnlyList<Stat> Stats { get; internal set; }
     }
 }

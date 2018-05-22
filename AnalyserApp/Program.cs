@@ -88,6 +88,39 @@ namespace AnalyserApp
                     Reporter.RegisterMultiMetric(MetricCollectors.CollectHeapGenerationMetrics);
             }
         }
+        
+        [Option("ts", Default = false, HelpText = "Object counts and sizes by types")]
+        public bool TypesStats
+        {
+            get => false;
+            set
+            {
+                if (value)
+                    Reporter.RegisterStat(StatCollectors.CollectTypesStats);
+            }
+        }
+        
+        [Option("st", Default = false, HelpText = "Uniq stack traces and respective managed thread ids")]
+        public bool StackTraces
+        {
+            get => false;
+            set
+            {
+                if (value)
+                    Reporter.RegisterStat(StatCollectors.CollectStackTraceStats);
+            }
+        }
+        
+        [Option("bxst", Default = false, HelpText = "Boxed structs counts and total sizes by types")]
+        public bool Structs
+        {
+            get => false;
+            set
+            {
+                if (value)
+                    Reporter.RegisterStat(StatCollectors.CollectStructStats);
+            }
+        }
     }
 
     [Verb("proc", HelpText = "Analyse live process")]
