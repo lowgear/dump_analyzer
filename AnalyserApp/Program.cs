@@ -20,21 +20,27 @@ namespace AnalyserApp
                     errs => 1);
         }
 
-        private static int Run(Arguments args)
+        private static int Run(Arguments options)
         {
             Report[] reports;
-            using (var dt = args.GetDataTarget())
+            using (var dt = options.GetDataTarget())
             {
                 reports = dt.ClrVersions
-                    .Select(cv => args.Reporter.Report(cv.CreateRuntime()))
+                    .Select(cv => options.Reporter.Report(cv.CreateRuntime()))
                     .ToArray();
             }
 
-            var jsonSerializer = new JsonSerializer
+            
+            if (options.Html)
+                new HtmlRenderer(Console.Out).Render(reports);
+            else
             {
-                Formatting = Formatting.Indented
-            };
-            jsonSerializer.Serialize(Console.Out, reports);
+                var jsonSerializer = new JsonSerializer
+                {
+                    Formatting = Formatting.Indented
+                };
+                jsonSerializer.Serialize(Console.Out, reports);
+            }
 
             return 0;
         }
@@ -55,7 +61,7 @@ namespace AnalyserApp
                     Reporter.RegisterDetector(IssueDetectors.DetectDeadLocks);
             }
         }
-        
+
         [Option("ex", Default = false, HelpText = "Check for unhandled exceptions")]
         public bool Exceptions
         {
@@ -77,7 +83,7 @@ namespace AnalyserApp
                     Reporter.RegisterMetrics(MetricCollectors.CollectThreadCountMetric);
             }
         }
-        
+
         [Option("hg", Default = false, HelpText = "Generations counts and sizes")]
         public bool HeapGenerations
         {
@@ -88,7 +94,7 @@ namespace AnalyserApp
                     Reporter.RegisterMultiMetric(MetricCollectors.CollectHeapGenerationMetrics);
             }
         }
-        
+
         [Option("ts", Default = false, HelpText = "Object counts and sizes by types")]
         public bool TypesStats
         {
@@ -99,7 +105,7 @@ namespace AnalyserApp
                     Reporter.RegisterStat(StatCollectors.CollectTypesStats);
             }
         }
-        
+
         [Option("st", Default = false, HelpText = "Uniq stack traces and respective managed thread ids")]
         public bool StackTraces
         {
@@ -110,7 +116,7 @@ namespace AnalyserApp
                     Reporter.RegisterStat(StatCollectors.CollectStackTraceStats);
             }
         }
-        
+
         [Option("bxst", Default = false, HelpText = "Boxed structs counts and total sizes by types")]
         public bool Structs
         {
@@ -121,6 +127,9 @@ namespace AnalyserApp
                     Reporter.RegisterStat(StatCollectors.CollectStructStats);
             }
         }
+
+        [Option("html", Default = false, HelpText = "Render report to html instead of json")]
+        public bool Html { get; set; }
     }
 
     [Verb("proc", HelpText = "Analyse live process")]

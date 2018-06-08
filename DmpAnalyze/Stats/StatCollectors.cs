@@ -51,7 +51,7 @@ namespace DmpAnalyze
         public static Stat CollectStructStats(ClrRuntime runtime)
         {
             var typesStats = TypesStats(runtime.Heap.EnumerateObjects()
-                .Where(o => o.Type.IsValueClass));
+                .Where(o => o.Type != null && o.Type.IsValueClass));
 
             return new TypesStat(
                 "Boxed structs statistics",

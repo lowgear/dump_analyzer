@@ -46,15 +46,6 @@ namespace DmpAnalyze.Issues
             return lockCycles.Select(c => new DeadLockIssue(c));
         }
 
-        public static IEnumerable<LockConvoyIssue> DetectLockConvoys(ClrRuntime runtime, Report report)
-        {
-            var convoyObjects = runtime.Heap.EnumerateBlockingObjects()
-                .Where(o => o.Waiters.Count >= ConvoyMinLength);
-
-            return convoyObjects
-                .Select(o => new LockConvoyIssue(o));
-        }
-
         public static IEnumerable<IIssue> DetectUnhandledExceptions(ClrRuntime runtime, Report report)
         {
             return runtime.Threads
