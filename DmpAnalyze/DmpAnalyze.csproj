@@ -51,7 +51,6 @@
   <ItemGroup>
     <Compile Include="Issues\DeadLockIssue.cs" />
     <Compile Include="Issues\IIssue.cs" />
-    <Compile Include="Issues\Issue.cs" />
     <Compile Include="Issues\IssueDetectors.cs" />
     <Compile Include="Issues\UnhandledExceptionIssue.cs" />
     <Compile Include="Metrics\MetricCollectors.cs" />
