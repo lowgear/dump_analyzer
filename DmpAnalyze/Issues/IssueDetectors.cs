@@ -7,21 +7,6 @@ namespace DmpAnalyze.Issues
 {
     public static class IssueDetectors
     {
-        public const int ConvoyMinLength = 4;
-        
-        
-//        public static IEnumerable<IIssue> DetectMemLeaks(ClrRuntime runtime, Report report)
-//        {
-//            var workingSet = report.Metrics.FirstOrDefault(m => m is WorkingSetMetric)?.Value ??
-//                             MetricCollectors.CollectWorkingSetMetric(runtime).Value;
-//            var suspiciousTypes = report.Stats.Top10ConsumingTypes.Where(kv => kv.Value > (ulong) (workingSet / 3));
-//
-//            return suspiciousTypes
-//                .Select(kv =>
-//                    new Issue($"Possible leak [{kv.Key}]",
-//                        $"[{kv.Key}] objects consume {kv.Value * 100 / (ulong) workingSet}% of working set."));
-//        }
-
         private class ClrThreadEqualityComparer : IEqualityComparer<ClrThread>
         {
             public bool Equals(ClrThread x, ClrThread y) => object.Equals(x, y);
