@@ -47,6 +47,10 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="Vostok.Commons, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\packages\Vostok.Commons.0.0.4\lib\netstandard2.0\Vostok.Commons.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Issues\DeadLockIssue.cs" />
@@ -63,6 +67,7 @@
     <Compile Include="Stats\StatCollectors.cs" />
     <Compile Include="Stats\TypesStat.cs" />
     <Compile Include="Utils\Graphs.cs" />
+    <Compile Include="Utils\MemorySize.cs" />
     <Compile Include="Utils\Miscellaneous.cs" />
   </ItemGroup>
   <ItemGroup>

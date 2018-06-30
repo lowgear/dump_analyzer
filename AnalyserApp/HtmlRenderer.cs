@@ -12,13 +12,14 @@ namespace AnalyserApp
 {
     public class HtmlRenderer
     {
-        private static string CssDefinition { get; }= @"
+        private static string CssDefinition { get; } = @"
 <style type=""text/css"">
 	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
 	td, th { padding: 6px 13px; border: 1px solid #ddd; }
 	tr { background-color: #fff; border-top: 1px solid #ccc; }
 	tr:nth-child(even) { background: #f8f8f8; }
 </style>";
+
         private TextWriter Writer { get; }
 
         public HtmlRenderer(TextWriter writer)
@@ -32,6 +33,7 @@ namespace AnalyserApp
             {
                 Writer.WriteLine(CssDefinition);
             }
+
             using (Tag("body"))
                 foreach (var report in reports)
                     Render(report);
@@ -100,18 +102,8 @@ namespace AnalyserApp
                 RenderTable(
                     sts.StackTraceInfos.OrderByDescending(s => s.ThreadsCount),
                     ("Threads count", s => Write(s.ThreadsCount.ToString())),
-                    ("Thread ids", s =>
-                    {
-                        using (new DetailsTag(Writer))
-                            Writer.Write(string.Join(
-                                ", ",
-                                s.ThreadIds));
-                    }),
-                    ("Stack trace", s =>
-                    {
-                        using (new DetailsTag(Writer))
-                            RenderStackTrace(s.StackTrace);
-                    }));
+                    ("Thread ids", s => RenderPossiblyExpandableList(s.ThreadIds, ", ", 10, 5)),
+                    ("Stack trace", s => RenderStackTrace(s.StackTrace)));
             }
             else if (stat is TypesStat ts)
             {
@@ -127,9 +119,35 @@ namespace AnalyserApp
                 throw new NotImplementedException();
         }
 
+        private void RenderPossiblyExpandableList<T>(ICollection<T> elements, string separator, int threshold, int head)
+        {
+            var strings = elements
+                .Select(e => HttpUtility.HtmlEncode(e.ToString()))
+                .ToArray();
+
+            if (elements.Count <= threshold)
+            {
+                Writer.Write(string.Join(
+                    separator,
+                    strings));
+                return;
+            }
+
+            var title = string.Join(
+                separator,
+                strings.Take(head)
+            );
+
+            using (new DetailsTag(Writer, title))
+                Writer.Write(string.Join(
+                    separator,
+                    strings.Skip(head)));
+        }
+
         private void RenderStackTrace(string[] s)
         {
-            Writer.Write(string.Join("<br>\n", s));
+            RenderPossiblyExpandableList(s, "<br>", 7, 4);
+//            Writer.Write(string.Join("<br>\n", s));
         }
 
         private void RenderTypesStatsTable(IEnumerable<KeyValuePair<string, TypeStat>> typesStats)
@@ -171,27 +189,22 @@ namespace AnalyserApp
                 RenderTable(
                     dlk.Cycle.Zip(dlk.StackTraces, (c, s) => (c, s)),
                     ("Thread id", e => Write(e.Item1.Item1.ManagedThreadId.ToString())),
-                    ("Stack trace", e =>
-                    {
-                        using (new DetailsTag(Writer))
-                            RenderStackTrace(e.Item2);
-                    }));
+                    ("Stack trace", e => RenderStackTrace(e.Item2)));
             }
             else if (issue is UnhandledExceptionIssue ex)
             {
                 using (Tag("h4"))
                     Write("Exception type");
                 Write(ex.ExceptionType);
-                
+
                 using (Tag("h4"))
                     Write("Exception message");
                 using (new DetailsTag(Writer))
                     Write(ex.ExceptionMessage);
-                
+
                 using (Tag("h4"))
                     Write("Stack trace");
-                using (new DetailsTag(Writer))
-                    RenderStackTrace(ex.StackTrace);
+                RenderStackTrace(ex.StackTrace);
             }
         }
 
@@ -221,12 +234,12 @@ namespace AnalyserApp
     {
         public TextWriter Writer { get; }
 
-        public DetailsTag(TextWriter writer)
+        public DetailsTag(TextWriter writer, string title = "Click to expand")
         {
             Writer = writer;
 
             Writer.WriteLine("<details>");
-            Writer.WriteLine($"<summary>{HttpUtility.HtmlEncode("Click to expand")}</summary>");
+            Writer.WriteLine($"<summary>{title}</summary>");
         }
 
         public void Dispose()

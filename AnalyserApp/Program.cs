@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using CommandLine;
 using DmpAnalyze;
@@ -6,6 +7,7 @@ using DmpAnalyze.Issues;
 using DmpAnalyze.Metrics;
 using Microsoft.Diagnostics.Runtime;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace AnalyserApp
 {
@@ -30,17 +32,19 @@ namespace AnalyserApp
                     .ToArray();
             }
 
+            options.WriteReportsOut(reports);
             
-            if (options.Html)
-                new HtmlRenderer(Console.Out).Render(reports);
-            else
-            {
-                var jsonSerializer = new JsonSerializer
-                {
-                    Formatting = Formatting.Indented
-                };
-                jsonSerializer.Serialize(Console.Out, reports);
-            }
+//            if (options.Html)
+//                new HtmlRenderer(Console.Out).Render(reports);
+//            else
+//            {
+//                var jsonSerializer = new JsonSerializer
+//                {
+//                    Formatting = Formatting.Indented,
+//                    Converters = {new DataSizeConverter()}
+//                };
+//                jsonSerializer.Serialize(Console.Out, reports);
+//            }
 
             return 0;
         }
@@ -51,6 +55,16 @@ namespace AnalyserApp
         public Reporter Reporter { get; } = new Reporter();
         public Func<DataTarget> GetDataTarget { get; protected set; }
 
+        public Action<Report[]> WriteReportsOut { get; protected set; } = reports =>
+        {
+            var jsonSerializer = new JsonSerializer
+            {
+                Formatting = Formatting.Indented,
+                Converters = {new DataSizeConverter()}
+            };
+            jsonSerializer.Serialize(Console.Out, reports);
+        };
+            
         [Option("dlk", Default = false, HelpText = "Check for deadlocks")]
         public bool Deadlocks
         {
@@ -129,7 +143,15 @@ namespace AnalyserApp
         }
 
         [Option("html", Default = false, HelpText = "Render report to html instead of json")]
-        public bool Html { get; set; }
+        public bool Html
+        {
+            get => false;
+            set
+            {
+                if (value)
+                    WriteReportsOut = reports => new HtmlRenderer(Console.Out).Render(reports);
+            }
+        }
     }
 
     [Verb("proc", HelpText = "Analyse live process")]
