@@ -17,9 +17,12 @@ namespace DmpAnalyze
 
         private HashSet<Func<ClrRuntime, Report, IEnumerable<IIssue>>> Detectors { get; } =
             new HashSet<Func<ClrRuntime, Report, IEnumerable<IIssue>>>();
-        
+
         private HashSet<Func<ClrRuntime, Stat>> StatCollectors { get; } =
             new HashSet<Func<ClrRuntime, Stat>>();
+
+        private HashSet<Func<ClrRuntime, IEnumerable<Stat>>> MultiStatCollectors { get; } =
+            new HashSet<Func<ClrRuntime, IEnumerable<Stat>>>();
 
         public Report Report(ClrRuntime runtime)
         {
@@ -27,12 +30,14 @@ namespace DmpAnalyze
 
             report.Stats = StatCollectors
                 .Select(s => s(runtime))
+                .Concat(MultiStatCollectors
+                    .SelectMany(c => c(runtime)))
                 .ToList();
-            
+
             report.Metrics = MetricCollectors
                 .Select(m => m(runtime))
                 .Concat(MultiMetricCollectors
-                        .SelectMany(c => c(runtime)))
+                    .SelectMany(c => c(runtime)))
                 .ToList();
 
             report.Issues = Detectors.SelectMany(d => d(runtime, report)).ToList();
@@ -78,6 +83,12 @@ namespace DmpAnalyze
         public Reporter RegisterStat(Func<ClrRuntime, Stat> statCollector)
         {
             StatCollectors.Add(statCollector);
+            return this;
+        }
+
+        public Reporter RegisterMultiStat(Func<ClrRuntime, IEnumerable<Stat>> statCollectors)
+        {
+            MultiStatCollectors.Add(statCollectors);
             return this;
         }
     }

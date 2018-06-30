@@ -20,5 +20,13 @@ namespace DmpAnalyze.Utils
             thread.StackTrace
                 .Select(frame => frame.DisplayString.EscapeNull())
                 .ToArray();
+
+        public static int GetGenOrLOH(this ClrRuntime runtime, ulong address)
+        {
+            var g = runtime.Heap.GetGeneration(address);
+            if (g == 2 && runtime.Heap.GetSegmentByAddress(address).IsLarge)
+                g = 3;
+            return g;
+        }
     }
 }

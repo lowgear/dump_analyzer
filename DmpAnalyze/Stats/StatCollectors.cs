@@ -41,7 +41,9 @@ namespace DmpAnalyze
 
         public static Stat CollectTypesStats(ClrRuntime runtime)
         {
-            var typesStats = TypesStats(runtime.Heap.EnumerateObjects());
+            var typesStats = TypesStats(
+                runtime.Heap.EnumerateObjects(),
+                o => o.Type?.Name);
 
             return new TypesStat(
                 "Types statistics",
@@ -51,28 +53,47 @@ namespace DmpAnalyze
 
         public static Stat CollectStructStats(ClrRuntime runtime)
         {
-            var typesStats = TypesStats(runtime.Heap.EnumerateObjects()
-                .Where(o => o.Type != null && o.Type.IsValueClass));
+            var typesStats = TypesStats(
+                runtime.Heap.EnumerateObjects()
+                    .Where(o => o.Type != null && o.Type.IsValueClass),
+                o => o.Type?.Name);
 
             return new TypesStat(
                 "Boxed structs statistics",
                 "Numbers of boxed structs and total sizes of each struct type.",
                 typesStats);
         }
-
-        private static Dictionary<string, TypeStat> TypesStats(IEnumerable<ClrObject> objects)
+        
+        public static IEnumerable<Stat> CollectTypeByHeapGensStats(ClrRuntime runtime)
         {
-            var typesStats = new Dictionary<string, TypeStat>();
-            foreach (var clrObject in objects)
-            {
-                var typeName = clrObject.Type?.Name;
+            var typesStats = TypesStats(
+                runtime.Heap.EnumerateObjects(),
+                o => (o.Type?.Name, runtime.GetGenOrLOH(o.Address)));
 
-                if (typeName == null)
+            return typesStats
+                .GroupBy(e => e.Key.Item2)
+                .OrderBy(g => g.Key)
+                .Select(g =>
+                    new TypesStat(
+                        $"Types statistics for {(g.Key == 3 ? "LOH" : $"generation {g.Key}")}",
+                        "Numbers of objects and total sizes of each type.",
+                        g.ToDictionary(e => e.Key.Item1, e => e.Value)));
+        }
+
+        private static Dictionary<T, TypeStat> TypesStats<T>(IEnumerable<ClrObject> objects,
+            Func<ClrObject, T> descriminator)
+        {
+            var typesStats = new Dictionary<T, TypeStat>();
+            foreach (var clrObject in objects.Where(o => o.Type != null))
+            {
+                var desc = descriminator(clrObject);
+
+                if (desc == null)
                     continue;
-                if (!typesStats.ContainsKey(typeName))
-                    typesStats[typeName] = new TypeStat(clrObject.Type);
-                typesStats[typeName].Count++;
-                typesStats[typeName].TotalSize += DataSize.FromBytes((long) clrObject.Size);
+                if (!typesStats.ContainsKey(desc))
+                    typesStats[desc] = new TypeStat(clrObject.Type);
+                typesStats[desc].Count++;
+                typesStats[desc].TotalSize += DataSize.FromBytes((long) clrObject.Size);
             }
 
             return typesStats;

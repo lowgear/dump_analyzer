@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using DmpAnalyze.Utils;
 using Microsoft.Diagnostics.Runtime;
 
 namespace DmpAnalyze.Metrics
@@ -25,13 +26,7 @@ namespace DmpAnalyze.Metrics
 //            
             return runtime.Heap
                 .EnumerateObjectAddresses()
-                .Select(a =>
-                {
-                    var g = runtime.Heap.GetGeneration(a);
-                    if (g == 2 && runtime.Heap.GetSegmentByAddress(a).IsLarge)
-                        g = 3;
-                    return g;
-                })
+                .Select(runtime.GetGenOrLOH)
                 .GroupBy(g => g)
                 .OrderBy(g => g.Key)
                 .Select(g => new Metric(

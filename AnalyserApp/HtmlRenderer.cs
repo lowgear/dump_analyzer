@@ -147,7 +147,6 @@ namespace AnalyserApp
         private void RenderStackTrace(string[] s)
         {
             RenderPossiblyExpandableList(s, "<br>", 7, 4);
-//            Writer.Write(string.Join("<br>\n", s));
         }
 
         private void RenderTypesStatsTable(IEnumerable<KeyValuePair<string, TypeStat>> typesStats)

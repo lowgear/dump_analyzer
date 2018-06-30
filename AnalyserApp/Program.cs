@@ -141,6 +141,17 @@ namespace AnalyserApp
                     Reporter.RegisterStat(StatCollectors.CollectStructStats);
             }
         }
+        
+        [Option("hgts", Default = false, HelpText = "Object counts and sizes by types for each heap generation")]
+        public bool TypesStatsByHeapGens
+        {
+            get => false;
+            set
+            {
+                if (value)
+                    Reporter.RegisterMultiStat(StatCollectors.CollectTypeByHeapGensStats);
+            }
+        }
 
         [Option("html", Default = false, HelpText = "Render report to html instead of json")]
         public bool Html
