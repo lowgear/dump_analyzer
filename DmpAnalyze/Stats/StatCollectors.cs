@@ -70,7 +70,7 @@ namespace DmpAnalyze
                 if (typeName == null)
                     continue;
                 if (!typesStats.ContainsKey(typeName))
-                    typesStats[typeName] = new TypeStat();
+                    typesStats[typeName] = new TypeStat(clrObject.Type);
                 typesStats[typeName].Count++;
                 typesStats[typeName].TotalSize += DataSize.FromBytes((long) clrObject.Size);
             }
@@ -97,11 +97,5 @@ namespace DmpAnalyze
 
         public int GetHashCode(string[] obj) =>
             obj.GetAggregatedHashCode();
-    }
-
-    public class TypeStat
-    {
-        public int Count { get; set; }
-        public DataSize TotalSize { get; set; }
     }
 }

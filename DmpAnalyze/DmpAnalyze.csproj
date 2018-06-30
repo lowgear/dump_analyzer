@@ -66,6 +66,7 @@
     <Compile Include="Stats\Stat.cs" />
     <Compile Include="Stats\StatCollectors.cs" />
     <Compile Include="Stats\TypesStat.cs" />
+    <Compile Include="Stats\TypeStat.cs" />
     <Compile Include="Utils\Graphs.cs" />
     <Compile Include="Utils\MemorySize.cs" />
     <Compile Include="Utils\Miscellaneous.cs" />

@@ -155,6 +155,7 @@ namespace AnalyserApp
             RenderTable(
                 typesStats,
                 ("Type name", s => Write(s.Key)),
+                ("Method Table", s => Write(s.Value.MethodTable.ToString())),
                 ("Objects count", s => Write(s.Value.Count.ToString())),
                 ("Total objects size", s => Write(s.Value.TotalSize.ToString())));
         }
