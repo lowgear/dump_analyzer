@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DmpAnalyze.Issues;
 using DmpAnalyze.Metrics;
+using DmpAnalyze.Stats;
 using Microsoft.Diagnostics.Runtime;
 
 namespace DmpAnalyze

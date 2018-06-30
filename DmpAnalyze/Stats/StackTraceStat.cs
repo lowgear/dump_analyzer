@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 
-namespace DmpAnalyze
+namespace DmpAnalyze.Stats
 {
     public class StackTraceStat : Stat
     {

@@ -5,6 +5,7 @@ using CommandLine;
 using DmpAnalyze;
 using DmpAnalyze.Issues;
 using DmpAnalyze.Metrics;
+using DmpAnalyze.Stats;
 using Microsoft.Diagnostics.Runtime;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;

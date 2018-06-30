@@ -5,7 +5,7 @@ using DmpAnalyze.Utils;
 using Microsoft.Diagnostics.Runtime;
 using Vostok.Commons;
 
-namespace DmpAnalyze
+namespace DmpAnalyze.Stats
 {
     public static class StatCollectors
     {

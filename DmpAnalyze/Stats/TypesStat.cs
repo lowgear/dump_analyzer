@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace DmpAnalyze
+namespace DmpAnalyze.Stats
 {
     public class TypesStat : Stat
     {

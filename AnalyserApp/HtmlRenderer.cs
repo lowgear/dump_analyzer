@@ -7,6 +7,7 @@ using System.Web.UI.WebControls;
 using DmpAnalyze;
 using DmpAnalyze.Issues;
 using DmpAnalyze.Metrics;
+using DmpAnalyze.Stats;
 
 namespace AnalyserApp
 {

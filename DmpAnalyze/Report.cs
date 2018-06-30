@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using DmpAnalyze.Issues;
 using DmpAnalyze.Metrics;
+using DmpAnalyze.Stats;
 
 namespace DmpAnalyze
 {

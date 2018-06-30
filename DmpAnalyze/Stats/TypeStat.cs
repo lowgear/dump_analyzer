@@ -1,7 +1,7 @@
 ﻿using Microsoft.Diagnostics.Runtime;
 using Vostok.Commons;
 
-namespace DmpAnalyze
+namespace DmpAnalyze.Stats
 {
     public class TypeStat
     {

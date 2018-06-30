@@ -1,4 +1,4 @@
-﻿namespace DmpAnalyze
+﻿namespace DmpAnalyze.Stats
 {
     public abstract class Stat
     {
