@@ -34,7 +34,11 @@ namespace DmpAnalyze.Metrics
                 })
                 .GroupBy(g => g)
                 .OrderBy(g => g.Key)
-                .Select(g => new Metric($"Heap generation {g.Key}", g.Count()));
+                .Select(g => new Metric(
+                    g.Key != 3 ? 
+                        $"Heap generation {g.Key} objects count" : 
+                        "Large Objects Heap objects count", 
+                    g.Count()));
         }
     }
 }

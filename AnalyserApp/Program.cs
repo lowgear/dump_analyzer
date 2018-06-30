@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using CommandLine;
 using DmpAnalyze;
@@ -6,6 +7,7 @@ using DmpAnalyze.Issues;
 using DmpAnalyze.Metrics;
 using Microsoft.Diagnostics.Runtime;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace AnalyserApp
 {
@@ -20,21 +22,29 @@ namespace AnalyserApp
                     errs => 1);
         }
 
-        private static int Run(Arguments args)
+        private static int Run(Arguments options)
         {
             Report[] reports;
-            using (var dt = args.GetDataTarget())
+            using (var dt = options.GetDataTarget())
             {
                 reports = dt.ClrVersions
-                    .Select(cv => args.Reporter.Report(cv.CreateRuntime()))
+                    .Select(cv => options.Reporter.Report(cv.CreateRuntime()))
                     .ToArray();
             }
 
-            var jsonSerializer = new JsonSerializer
-            {
-                Formatting = Formatting.Indented
-            };
-            jsonSerializer.Serialize(Console.Out, reports);
+            options.WriteReportsOut(reports);
+            
+//            if (options.Html)
+//                new HtmlRenderer(Console.Out).Render(reports);
+//            else
+//            {
+//                var jsonSerializer = new JsonSerializer
+//                {
+//                    Formatting = Formatting.Indented,
+//                    Converters = {new DataSizeConverter()}
+//                };
+//                jsonSerializer.Serialize(Console.Out, reports);
+//            }
 
             return 0;
         }
@@ -45,6 +55,16 @@ namespace AnalyserApp
         public Reporter Reporter { get; } = new Reporter();
         public Func<DataTarget> GetDataTarget { get; protected set; }
 
+        public Action<Report[]> WriteReportsOut { get; protected set; } = reports =>
+        {
+            var jsonSerializer = new JsonSerializer
+            {
+                Formatting = Formatting.Indented,
+                Converters = {new DataSizeConverter()}
+            };
+            jsonSerializer.Serialize(Console.Out, reports);
+        };
+            
         [Option("dlk", Default = false, HelpText = "Check for deadlocks")]
         public bool Deadlocks
         {
@@ -55,7 +75,7 @@ namespace AnalyserApp
                     Reporter.RegisterDetector(IssueDetectors.DetectDeadLocks);
             }
         }
-        
+
         [Option("ex", Default = false, HelpText = "Check for unhandled exceptions")]
         public bool Exceptions
         {
@@ -77,7 +97,7 @@ namespace AnalyserApp
                     Reporter.RegisterMetrics(MetricCollectors.CollectThreadCountMetric);
             }
         }
-        
+
         [Option("hg", Default = false, HelpText = "Generations counts and sizes")]
         public bool HeapGenerations
         {
@@ -88,7 +108,7 @@ namespace AnalyserApp
                     Reporter.RegisterMultiMetric(MetricCollectors.CollectHeapGenerationMetrics);
             }
         }
-        
+
         [Option("ts", Default = false, HelpText = "Object counts and sizes by types")]
         public bool TypesStats
         {
@@ -99,7 +119,7 @@ namespace AnalyserApp
                     Reporter.RegisterStat(StatCollectors.CollectTypesStats);
             }
         }
-        
+
         [Option("st", Default = false, HelpText = "Uniq stack traces and respective managed thread ids")]
         public bool StackTraces
         {
@@ -110,7 +130,7 @@ namespace AnalyserApp
                     Reporter.RegisterStat(StatCollectors.CollectStackTraceStats);
             }
         }
-        
+
         [Option("bxst", Default = false, HelpText = "Boxed structs counts and total sizes by types")]
         public bool Structs
         {
@@ -119,6 +139,17 @@ namespace AnalyserApp
             {
                 if (value)
                     Reporter.RegisterStat(StatCollectors.CollectStructStats);
+            }
+        }
+
+        [Option("html", Default = false, HelpText = "Render report to html instead of json")]
+        public bool Html
+        {
+            get => false;
+            set
+            {
+                if (value)
+                    WriteReportsOut = reports => new HtmlRenderer(Console.Out).Render(reports);
             }
         }
     }

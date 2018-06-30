@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DmpAnalyze.Utils;
 using Microsoft.Diagnostics.Runtime;
+using Vostok.Commons;
 
 namespace DmpAnalyze
 {
@@ -51,7 +52,7 @@ namespace DmpAnalyze
         public static Stat CollectStructStats(ClrRuntime runtime)
         {
             var typesStats = TypesStats(runtime.Heap.EnumerateObjects()
-                .Where(o => o.Type.IsValueClass));
+                .Where(o => o.Type != null && o.Type.IsValueClass));
 
             return new TypesStat(
                 "Boxed structs statistics",
@@ -61,7 +62,7 @@ namespace DmpAnalyze
 
         private static Dictionary<string, TypeStat> TypesStats(IEnumerable<ClrObject> objects)
         {
-            Dictionary<string, TypeStat> typesStats = new Dictionary<string, TypeStat>();
+            var typesStats = new Dictionary<string, TypeStat>();
             foreach (var clrObject in objects)
             {
                 var typeName = clrObject.Type?.Name;
@@ -71,7 +72,7 @@ namespace DmpAnalyze
                 if (!typesStats.ContainsKey(typeName))
                     typesStats[typeName] = new TypeStat();
                 typesStats[typeName].Count++;
-                typesStats[typeName].TotalSize += clrObject.Size;
+                typesStats[typeName].TotalSize += DataSize.FromBytes((long) clrObject.Size);
             }
 
             return typesStats;
@@ -101,6 +102,6 @@ namespace DmpAnalyze
     public class TypeStat
     {
         public int Count { get; set; }
-        public ulong TotalSize { get; set; }
+        public DataSize TotalSize { get; set; }
     }
 }
